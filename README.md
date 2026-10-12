@@ -32,6 +32,16 @@ cp tmp/s3-build/vcruntime140.dll "$BTS_DIR/"
 
 Steam launch options: `WINEDLLOVERRIDES="msvcr71,msvcp71,vcruntime140=n" %command%`.
 
+Keep Proton/Wine prefixes and test installations outside this checkout when
+it is installed as a mod. BtS recursively scans the mod directory before
+loading the DLL, including files reached through symlinks. A prefix's
+`pfx/dosdevices/z:` link points to `/` and can send that scan through the host
+filesystem indefinitely, leaving Steam showing a running game with no window.
+The SDK acquisition script now uses a temporary prefix outside the checkout.
+For prefixes left by earlier builds or smoke tests, remove their `z:` symlink
+or move the entire prefix outside the mod; a symlink from `Mods/` to this
+checkout can remain.
+
 ### Windows (PowerShell)
 
 Extract the [pinned Windows LLVM 23.1.2 archive](https://github.com/llvm/llvm-project/releases/download/llvmorg-23.1.2/clang+llvm-23.1.2-x86_64-pc-windows-msvc.tar.zst).
