@@ -6,7 +6,7 @@ Boost.Python bindings.
 
 ## Build
 
-Requires CMake 3.28+, Ninja, Python 3 with `pefile==2024.8.26`, 7-Zip and BtS.
+Requires CMake 3.28+, Ninja, Python 3 with `pefile==2024.8.26` and BtS.
 Run commands from the repository root.
 
 ### Linux (Bash)
@@ -23,10 +23,9 @@ python3 tools/build_dll.py \
   --llvm-bin /path/to/llvm-23.1.2/bin \
   --icu70-dir /path/to/icu70
 
-cp tmp/dll-build/vcruntime140.dll "$BTS_DIR/"
 ```
 
-Steam launch options: `WINEDLLOVERRIDES="msvcr71,msvcp71,vcruntime140=n" %command%`.
+Steam launch options: `WINEDLLOVERRIDES="msvcr71,msvcp71=n" %command%`.
 
 Keep Proton/Wine prefixes and test installations outside this checkout when
 it is installed as a mod. BtS recursively scans the mod directory before
@@ -40,31 +39,32 @@ Extract the [pinned Windows LLVM 23.1.2 archive](https://github.com/llvm/llvm-pr
 Put Python, CMake and Ninja on `PATH`. This build path has been checked under Wine.
 
 ```powershell
-python tools/prepare_dependencies.py --seven-zip "C:/Program Files/7-Zip/7z.exe"
+python tools/prepare_dependencies.py
 
 $BtsDir = "C:/Games/Beyond the Sword"
 python tools/build_dll.py `
   --bts-dir "$BtsDir" `
   --llvm-bin "C:/LLVM-23.1.2/bin"
 
-Copy-Item tmp/dll-build/vcruntime140.dll "$BtsDir/"
 ```
 
 Both builds produce `tmp/dll-build/CvGameCoreDLL.dll`. Copy it into your test
-mod's `Assets/`, preserving the original game DLL. `vcruntime140.dll` belongs
-beside `Civ4BeyondSword.exe`.
+mod's `Assets/`, preserving the original game DLL. The static exception adapter
+uses the original MSVCR71/MSVCP71 providers and needs no supplemental modern CRT.
+Its supported metadata, ABI evidence and exception diagnostics are documented
+in [compat/README.md](compat/README.md).
 
-`prepare_dependencies.py` prepares both dependency groups under
-`tmp/dependencies/` and reuses files after verifying their checksums. Repeated
-runs need neither Proton nor 7-Zip when both groups are complete. Use `--only sdk`
-or `--only runtime` to prepare one group, and `--sdk-installer` or
-`--runtime-installer` to use a downloaded installer. SDK installation on Linux
-uses a temporary Proton prefix outside the checkout.
+`prepare_dependencies.py` prepares the SDK headers and import libraries under
+`tmp/dependencies/` and reuses verified files. Repeated runs need no Proton
+when the SDK group is complete. `--sdk-installer` selects a downloaded installer.
+SDK installation on Linux uses a temporary Proton prefix outside the checkout.
+For native runtime reference diagnostics only, use `--only runtime` with 7-Zip;
+`--only all` explicitly prepares both groups. The runtime is not a build input.
 
 For a custom dependency location, pass `--output-dir tmp/my-dependencies` to
 the preparation script and `--deps-dir tmp/my-dependencies` to the build script.
-Existing caches still work through the build's `--vc71`, `--windows-sdk` and
-`--exception-runtime` overrides. `--output-dir` selects a custom build directory;
+Existing SDK caches still work through the build's `--vc71` and `--windows-sdk`
+overrides. `--output-dir` selects a custom build directory;
 Ninja reuses objects whose inputs have not changed.
 
 `prepare_headers.py` generates the pinned compatibility header view during
